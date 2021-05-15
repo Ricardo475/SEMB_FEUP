@@ -72,7 +72,7 @@ gameItem snakeFood;
 // kernel structure that defines the properties of each task
 // --> the Task Control Block (TCB)
 typedef struct {
-  /* period in ticks */
+  
   int period;
   /* ticks until next activation */
   int offset;
