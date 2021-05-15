@@ -49,6 +49,16 @@
 #define ON LOW   // built-in LED has positive logic
 #define OFF HIGH
 
+struct gameItem {
+  volatile unsigned int X; // x position
+  volatile unsigned int Y;  //y position
+};
+
+//array to store all snake body part positions
+gameItem snake[MAX_LENGTH];
+
+//snake food item
+gameItem snakeFood;
 
 
 
@@ -57,7 +67,7 @@
 
 //*************** kernel variables ******************
 // defines max number of tasks supported
-#define MAXT 10
+#define MAXT 5
 
 // kernel structure that defines the properties of each task
 // --> the Task Control Block (TCB)
