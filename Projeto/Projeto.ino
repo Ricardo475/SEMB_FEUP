@@ -39,8 +39,18 @@
 
   http://www.arduino.cc/en/Tutorial/Blink
 */
+#include <SPI.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_PCD8544.h>
 
+#define RIGHT 8 // Pin 2 connect to RIGHT button
+#define LEFT 9  // Pin 3 connect to LEFT button
+#define UP 10    // Pin 4 connect to UP button
+#define DOWN 11  // Pin 5 connect to DOWN button
+#define MAX_LENGTH 100  // Max snake's length, need less than 89 because arduino don't have more memory
 
+Adafruit_PCD8544 display = Adafruit_PCD8544(7, 6, 5, 4, 3);
+// Adafruit_PCD8544 display = Adafruit_PCD8544(5, 4, 3);
 
 // these are HW definitions 
 // LEDs ports
@@ -48,6 +58,13 @@
 
 #define ON LOW   // built-in LED has positive logic
 #define OFF HIGH
+
+//diameter of the gameItemSize
+unsigned int gameItemSize = 4;
+volatile unsigned int snakeSize = 4;
+volatile unsigned int snakeDir = 1;
+volatile int SPEED = 1; // Input from button
+
 
 struct gameItem {
   volatile unsigned int X; // x position
@@ -224,14 +241,17 @@ void T4() {
 // used to configure hardware resources and software structures
 
 void setup() {
-  // initialize LEDs outputs
-  pinMode(d1, OUTPUT);
+   Serial.begin(9600);
 
-  // start with LEDs OFF
-  digitalWrite(d1, OFF);
+  display.begin();
+  // init done
 
-  // serial comms
-  Serial.begin(115200);
+  // you can change the contrast around to adapt the display
+  // for the best viewing!
+  display.setContrast(50);
+
+  display.display(); // show splashscreen
+ // falta o resto (MENU)
   
   // run the kernel initialization routine
   Sched_Init();
