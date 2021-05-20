@@ -1,15 +1,15 @@
 /*
   SEMB / SETR - FEUP
-  
+
   Example of a simple task manager (multi-tasking kernel)
   The tasks just switch on, wait a bit and switch off a different LED
-    
+
   This version adds control of the activation period per task
   => each task is now triggered periodically by the kernel
 
   When  multiple tasks are ready, the one with highest priority executes
 
-  Preemptive --> if a higher priority task becomes ready during 
+  Preemptive --> if a higher priority task becomes ready during
                  the execution of another one, this one is preempted and
                  resumed after the termination of the hiher priority one
 
@@ -52,7 +52,7 @@
 Adafruit_PCD8544 display = Adafruit_PCD8544(7, 6, 5, 4, 3);
 // Adafruit_PCD8544 display = Adafruit_PCD8544(5, 4, 3);
 
-// these are HW definitions 
+// these are HW definitions
 // LEDs ports
 #define d1 13  // built-in LED - positive logic
 
@@ -60,7 +60,7 @@ Adafruit_PCD8544 display = Adafruit_PCD8544(7, 6, 5, 4, 3);
 #define OFF HIGH
 
 //diameter of the gameItemSize
-unsigned int gameItemSize = 4;
+unsigned int gameItemSize = 2;
 volatile unsigned int snakeSize = 4;
 volatile unsigned int snakeDir = 1;
 volatile int SPEED = 1; // Input from button
@@ -89,7 +89,7 @@ gameItem snakeFood;
 // kernel structure that defines the properties of each task
 // --> the Task Control Block (TCB)
 typedef struct {
-  
+
   int period;
   /* ticks until next activation */
   int offset;
@@ -109,37 +109,37 @@ byte cur_task = MAXT;
 
 // kernel initialization routine
 
-int Sched_Init(void){
+int Sched_Init(void) {
   /* - Initialise data
-  * structures.
+    structures.
   */
   byte x;
-  for(x=0; x<MAXT; x++)
+  for (x = 0; x < MAXT; x++)
     Tasks[x].func = 0;
-    // note that "func" will be used to see if a TCB
-    // is free (func=0) or used (func=pointer to task code)
+  // note that "func" will be used to see if a TCB
+  // is free (func=0) or used (func=pointer to task code)
   /* - Configure interrupt
-  * that periodically
-  * calls
-  * Sched_Schedule().
+    that periodically
+    calls
+    Sched_Schedule().
   */
- 
+
 }
 
 // adding a task to the kernel
 
-int Sched_AddT( void (*f)(void), int d, int p){
-    byte x;
-    for(x=0; x<MAXT; x++)
-      if (!Tasks[x].func) {
-        // finds the first free TCB
-        Tasks[x].period = p;
-        Tasks[x].offset = d;  //first activation is "d" after kernel start
-        Tasks[x].exec = 0;
-        Tasks[x].func = f;
-        return x;
-      }
-    return -1;  // if no free TCB --> return error
+int Sched_AddT( void (*f)(void), int d, int p) {
+  byte x;
+  for (x = 0; x < MAXT; x++)
+    if (!Tasks[x].func) {
+      // finds the first free TCB
+      Tasks[x].period = p;
+      Tasks[x].offset = d;  //first activation is "d" after kernel start
+      Tasks[x].exec = 0;
+      Tasks[x].func = f;
+      return x;
+    }
+  return -1;  // if no free TCB --> return error
 }
 
 // Kernel scheduler, just activates periodic tasks
@@ -147,16 +147,16 @@ int Sched_AddT( void (*f)(void), int d, int p){
 // then reset to "period"
 // --> 1st activation at "offset" and then on every "period"
 
-void Sched_Schedule(void){
+void Sched_Schedule(void) {
   byte x;
-  for(x=0; x<MAXT; x++) {
-    if((Tasks[x].func)&&(Tasks[x].offset)){
+  for (x = 0; x < MAXT; x++) {
+    if ((Tasks[x].func) && (Tasks[x].offset)) {
       // for all existing tasks (func!=0) and not at 0, yet
       Tasks[x].offset--;  //decrement counter
-      if(!Tasks[x].offset){
+      if (!Tasks[x].offset) {
         /* offset = 0 --> Schedule Task --> set the "exec" flag/counter */
         // Tasks[x].exec++;  // accummulates activations if overrun UNSUITED TO REAL_TIME
-        Tasks[x].exec=1;    // if overrun, following activation is lost
+        Tasks[x].exec = 1;  // if overrun, following activation is lost
         Tasks[x].offset = Tasks[x].period;  // reset counter
       }
     }
@@ -168,14 +168,14 @@ void Sched_Schedule(void){
 //  --> preemptive -> one-shot model
 
 
-void Sched_Dispatch(void){
+void Sched_Dispatch(void) {
   // save current task to resume it after preemption
   byte prev_task;
   byte x;
   prev_task = cur_task;  // save currently running task, for the case it is preempted
-  for(x=0; x<cur_task; x++) {
-  // x searches from 0 (highest priority) up to x (current task)
-    if((Tasks[x].func)&&(Tasks[x].exec)) {
+  for (x = 0; x < cur_task; x++) {
+    // x searches from 0 (highest priority) up to x (current task)
+    if ((Tasks[x].func) && (Tasks[x].exec)) {
       // if a TCB has a task (func!=0) and there is a pending activation
       Tasks[x].exec--;  // decrement (reset) "exec" flag/counter
 
@@ -188,14 +188,121 @@ void Sched_Dispatch(void){
       cur_task = prev_task;  // resume the task that was preempted (if any)
 
       // Delete task if one-shot, i.e., only runs once (period=0 && offset!0)
-      if(!Tasks[x].period)
+      if (!Tasks[x].period)
         Tasks[x].func = 0;
     }
   }
 }
+void drawGameOver() {
+  char points[]= {' ',' ',' ','\n'}; // put '1' instead of '0' , it will ignore :v
+  snakeSize -= 5;
+  if (snakeSize < 10)
+  {
+    points[2] = snakeSize + '0';
+  }
+  else if(snakeSize >= 10 && snakeSize < 100)
+  {
+    points[1] = (snakeSize / 10) + '0';
+    points[2] = (snakeSize % 10) + '0';
+  }
+  else if (snakeSize >= 100)
+  {
+    points[2] = (snakeSize % 10) + '0';
+    snakeSize /= 10;
+    points[0] = (snakeSize / 10) + '0';
+    points[1] = (snakeSize % 10) + '0';
+  }
+  
+  while(1)
+  {
+     display.clearDisplay();
+      display.setTextColor(BLACK);       
+      display.setTextSize(1);
+      display.setCursor(20,12);
+      display.print("Game Over");
+      display.setCursor(15,30);
+      display.print("Score: ");
+      display.print(points);
+      display.setCursor(15,40);
+  }
+}
+void drawFood() {
+  display.drawCircle(snakeFood.X,snakeFood.Y,gameItemSize,BLACK);
+  }
 
+void spawnSnakeFood() {
+  //generate snake Food position and avoid generate on position of snake
+  unsigned int i = 1;
+  do {
+    snakeFood.X = random(2, display.width());
+    while(snake[i].X == snakeFood.X || i != snakeSize)
+    {
+      snakeFood.X = random(2, 126);
+      i++;
+    }    
+  } while (snakeFood.X % 4 != 0);
+  i = 1;
+  do {
+    snakeFood.Y = random(2, 62);
+    while(snake[i].Y == snakeFood.Y || i != snakeSize)
+    {
+      snakeFood.Y = random(2, display.height());
+      i++;
+    }    
+  } while (snakeFood.Y % 4 != 0);
+}
+void drawSnake() {
+  for (unsigned int i = 0; i < snakeSize; i++) {
+    display.drawCircle(snake[i].X,snake[1].Y,1,BLACK);  
+    display.display(); 
+ }
+}
+void updateValues() {
+  //update all body parts of the snake excpet the head
+  unsigned int i;
+  for (i = snakeSize - 1; i > 0; i--)
+    snake[i] = snake[i - 1];
 
+  //Now update the head
+  //move left
+  if (snakeDir == 0)
+    snake[0].X -= gameItemSize;
+    
+  //move right
+  else if (snakeDir == 1)
+    snake[0].X += gameItemSize;
 
+  //move down
+  else if (snakeDir == 2)
+    snake[0].Y += gameItemSize;
+
+  //move up
+  else if (snakeDir == 3) 
+    snake[0].Y -= gameItemSize;
+}
+
+void handleColisions() {
+  //check if snake eats food
+  if (snake[0].X == snakeFood.X && snake[0].Y == snakeFood.Y) {
+    //increase snakeSize
+    snakeSize++;
+    //regen food
+    spawnSnakeFood();
+  }
+
+  //check if snake collides with itself
+  else {
+    for (unsigned int i = 1; i < snakeSize; i++) {
+      if (snake[0].X == snake[i].X && snake[0].Y == snake[i].Y) {
+        drawGameOver();
+      }
+    }
+  }
+  //check for wall collisions
+  if ((snake[0].X < 0) || (snake[0].Y < 0) || (snake[0].X > 124) || (snake[0].Y > 60)) {
+    drawGameOver();
+  }
+}
 
 //*************** tasks code ******************
 // This is the code of the tasks, normally they would something more useful !
@@ -203,36 +310,60 @@ void Sched_Dispatch(void){
 
 
 void T1() {
-  
+
   Serial.write('S');
-  digitalWrite(d1,ON); 
-  delay(random(200,500));  // random "execution time" between 200 and 500 ms
-  digitalWrite(d1,OFF);    // despite being a "long" task, it is preempted to allow
+  digitalWrite(d1, ON);
+  delay(random(200, 500)); // random "execution time" between 200 and 500 ms
+  digitalWrite(d1, OFF);   // despite being a "long" task, it is preempted to allow
   Serial.println('F');     // other tasks to execute (see their numbers between S and F
- }
+}
 
 
 void T2() {
-  
+
   Serial.write('2');
   delay(70);
- }
+}
 
 
 void T3() {
 
   Serial.write('3');
   delay(30);
-  }
-  
+}
+
 
 void T4() {
 
   Serial.write('4');
   delay(80);
+}
+void playGame() {
+  handleColisions();
+  updateValues(); 
+}
+void draw(){
+    drawSnake();
+    drawFood();
+}
+void get_key() {
+  if (digitalRead(LEFT) == 0 && snakeDir != 1)
+  {
+    snakeDir = 0; // left
   }
-
-
+  else if (digitalRead(RIGHT) == 0 && snakeDir != 0)
+  {
+    snakeDir = 1; // right
+  }
+  else if (digitalRead(DOWN) == 0 && snakeDir != 3)
+  {
+    snakeDir = 2; // down
+  }
+  else if (digitalRead(UP) == 0 && snakeDir != 2)
+  {
+    snakeDir = 3; // up
+  }
+}
 
 
 /*****************  Arduino framework  ********************/
@@ -241,7 +372,7 @@ void T4() {
 // used to configure hardware resources and software structures
 
 void setup() {
-   Serial.begin(9600);
+  Serial.begin(9600);
 
   display.begin();
   // init done
@@ -251,26 +382,29 @@ void setup() {
   display.setContrast(50);
 
   display.display(); // show splashscreen
- // falta o resto (MENU)
-  
+  // falta o resto (MENU)
+
   // run the kernel initialization routine
   Sched_Init();
 
   // add all periodic tasks  (code, offset, period) in ticks
   // for the moment, ticks in 10ms -- see below timer frequency
-  Sched_AddT(T4, 1, 10);   // highest priority
+  /*Sched_AddT(T4, 1, 10);   // highest priority
   Sched_AddT(T3, 1, 40);
   Sched_AddT(T2, 1, 80);
   Sched_AddT(T1, 1, 160);  // T1 with lowest priority, observe preemption
-  
+  */
+  Sched_AddT(get_key, 1, 40);   // highest priority
+  Sched_AddT( updateValues, 1, 80);
+  Sched_AddT(draw, 1,150);
   noInterrupts(); // disable all interrupts
 
   // timer 1 control registers
   TCCR1A = 0;
   TCCR1B = 0;
   TCNT1 = 0;
- 
-  // register for the frequency of timer 1  
+
+  // register for the frequency of timer 1
   OCR1A = 625; // compare match register 16MHz/256/100Hz -- tick = 10ms
   //OCR1A = 6250; // compare match register 16MHz/256/10Hz
   //OCR1A = 31250; // compare match register 16MHz/256/2Hz
@@ -279,19 +413,19 @@ void setup() {
   TCCR1B |= (1 << CS12); // 256 prescaler
   TIMSK1 |= (1 << OCIE1A); // enable timer compare interrupt
 
-  interrupts(); // enable all interrupts  
+  interrupts(); // enable all interrupts
 }
 
 
 //timer1 interrupt service routine (ISR)
-ISR(TIMER1_COMPA_vect){
+ISR(TIMER1_COMPA_vect) {
   Sched_Schedule();  // invokes the scheduler to update tasks activations
   // invokes the dispatcher to execute the highest priority ready task
-  Sched_Dispatch();  
+  Sched_Dispatch();
 }
 
 
 // the loop function runs over and over again forever
-// in this case, it does nothing, all tasks are executed by the kernel 
+// in this case, it does nothing, all tasks are executed by the kernel
 void loop() {
 }
