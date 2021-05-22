@@ -46,11 +46,11 @@
 #define RIGHT 8 // Pin 2 connect to RIGHT button
 #define LEFT 9  // Pin 3 connect to LEFT button
 #define UP 10    // Pin 4 connect to UP button
-#define DOWN 11  // Pin 5 connect to DOWN button
+#define DOWN 7  // Pin 5 connect to DOWN button
 #define MAX_LENGTH 100  // Max snake's length, need less than 89 because arduino don't have more memory
 
-Adafruit_PCD8544 display = Adafruit_PCD8544(7, 6, 5, 4, 3);
-// Adafruit_PCD8544 display = Adafruit_PCD8544(5, 4, 3);
+//Adafruit_PCD8544 display = Adafruit_PCD8544(7, 6, 5, 4, 3);
+  Adafruit_PCD8544 display = Adafruit_PCD8544(5, 4, 3);
 
 // these are HW definitions
 // LEDs ports
@@ -227,7 +227,8 @@ void drawGameOver() {
   }
 }
 void drawFood() {
-  display.drawCircle(snakeFood.X,snakeFood.Y,gameItemSize,BLACK);
+  display.fillRect(snakeFood.X,snakeFood.Y,3,3,WHITE);          
+  display.display();            
   }
 
 void spawnSnakeFood() {
@@ -374,6 +375,12 @@ void get_key() {
 void setup() {
   Serial.begin(9600);
 
+  //Inicializar butões
+  pinMode(LEFT,INPUT);
+  pinMode(RIGHT,INPUT);
+  pinMode(UP,INPUT);
+  pinMode(DOWN,INPUT);
+  
   display.begin();
   // init done
 
@@ -382,6 +389,7 @@ void setup() {
   display.setContrast(50);
 
   display.display(); // show splashscreen
+  display.clearDisplay();
   // falta o resto (MENU)
 
   // run the kernel initialization routine
@@ -395,7 +403,7 @@ void setup() {
   Sched_AddT(T1, 1, 160);  // T1 with lowest priority, observe preemption
   */
   Sched_AddT(get_key, 1, 40);   // highest priority
-  Sched_AddT( updateValues, 1, 80);
+  Sched_AddT( playGame, 1, 80);
   Sched_AddT(draw, 1,150);
   noInterrupts(); // disable all interrupts
 
