@@ -43,12 +43,13 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_PCD8544.h>
 
-#define RIGHT 8 // Pin 2 connect to RIGHT button
-#define LEFT 9  // Pin 3 connect to LEFT button
-#define UP 10    // Pin 4 connect to UP button
-#define DOWN 7  // Pin 5 connect to DOWN button
+#define RIGHT 7 // Pin 7 connect to RIGHT button
+#define LEFT 6  // Pin 6 connect to LEFT button
+#define UP 9    // Pin 9 connect to UP button
+#define DOWN 8  // Pin 8 connect to DOWN button
+#define BEEP 10
 #define MAX_LENGTH 100  // Max snake's length, need less than 89 because arduino don't have more memory
-
+#define LEVEL_MAX 3
 //Adafruit_PCD8544 display = Adafruit_PCD8544(7, 6, 5, 4, 3);
   Adafruit_PCD8544 display = Adafruit_PCD8544(5, 4, 3);
 
@@ -56,14 +57,14 @@
 // LEDs ports
 #define d1 13  // built-in LED - positive logic
 
-#define ON LOW   // built-in LED has positive logic
+#define ON LOW   // built-in LED has positive log                                                   ic
 #define OFF HIGH
 
 //diameter of the gameItemSize
-unsigned int gameItemSize = 2;
+unsigned int gameItemSize = 2,level=1;
 volatile unsigned int snakeSize = 4;
 volatile unsigned int snakeDir = 1;
-volatile int SPEED = 1; // Input from button
+volatile unsigned int speed=1; // Input from button
 
 
 struct gameItem {
@@ -227,34 +228,55 @@ void drawGameOver() {
   }
 }
 void drawFood() {
-  display.fillRect(snakeFood.X,snakeFood.Y,3,3,WHITE);          
-  display.display();            
+    display.fillRect(snakeFood.X,snakeFood.Y,2,2,BLACK);          
+    display.display();            
   }
 
 void spawnSnakeFood() {
   //generate snake Food position and avoid generate on position of snake
   unsigned int i = 1;
-  do {
-    snakeFood.X = random(2, display.width());
-    while(snake[i].X == snakeFood.X || i != snakeSize)
+  unsigned int f = 1;
+
+  randomSeed(analogRead(A0));
+  
+    while (snakeFood.X %4 != 0 || f==1)
     {
-      snakeFood.X = random(2, 126);
-      i++;
-    }    
-  } while (snakeFood.X % 4 != 0);
-  i = 1;
-  do {
-    snakeFood.Y = random(2, 62);
-    while(snake[i].Y == snakeFood.Y || i != snakeSize)
-    {
-      snakeFood.Y = random(2, display.height());
-      i++;
-    }    
-  } while (snakeFood.Y % 4 != 0);
+       
+      
+        snakeFood.X = random(2, display.width()-2);
+        f=0;
+       
+        for(int i=0; i<=snakeSize;i++)
+        {
+          if(snakeFood.X == snake[i].X)
+          {
+            f=1;
+          }
+        }
+        
+      
+    } 
+    f=1;
+    while (snakeFood.Y % 4 != 0 || f==1){
+        
+        snakeFood.Y = random(2, display.height()-2);
+        f=0;
+        
+        for(int i=0; i<=snakeSize;i++)
+        {
+          if(snakeFood.Y == snake[i].Y)
+          {
+            f=1;
+          }
+        }
+    } 
+  Serial.print(snakeFood.X );
+  Serial.write("  ");
+  Serial.print(snakeFood.Y );
 }
 void drawSnake() {
   for (unsigned int i = 0; i < snakeSize; i++) {
-    display.drawCircle(snake[i].X,snake[1].Y,1,BLACK);  
+    display.fillRect(snake[i].X,snake[i].Y,2,2,BLACK);  
     display.display(); 
  }
 }
@@ -282,13 +304,16 @@ void updateValues() {
     snake[0].Y -= gameItemSize;
 }
 
-void handleColisions() {
+void handleColisions2() {
   //check if snake eats food
   if (snake[0].X == snakeFood.X && snake[0].Y == snakeFood.Y) {
     //increase snakeSize
+   //Serial.write("sup");
     snakeSize++;
     //regen food
-    spawnSnakeFood();
+    //spawnSnakeFood();
+    Sched_AddT(spawnSnakeFood, 1, 0);
+     Sched_AddT(beepComida, 10, 0);
   }
 
   //check if snake collides with itself
@@ -300,11 +325,47 @@ void handleColisions() {
     }
   }
   //check for wall collisions
-  if ((snake[0].X < 0) || (snake[0].Y < 0) || (snake[0].X > 124) || (snake[0].Y > 60)) {
+  if ((snake[0].X < 2) || (snake[0].Y < 2) || (snake[0].X > display.width()-2) || (snake[0].Y > display.height()-2)) {
     drawGameOver();
   }
 }
+void handleColisions() {
+  //check if snake eats food
+  if (snake[0].X == snakeFood.X && snake[0].Y == snakeFood.Y) {
+    //increase snakeSize
+   //Serial.write("sup");
+    snakeSize++;
+    //regen food
+    //spawnSnakeFood();
+    Sched_AddT(spawnSnakeFood, 1, 0);
+     Sched_AddT(beepComida, 10, 0);
+  }
 
+  //check if snake collides with itself
+  else {
+    for (unsigned int i = 1; i < snakeSize; i++) {
+      if (snake[0].X == snake[i].X && snake[0].Y == snake[i].Y) {
+        drawGameOver();
+      }
+    }
+  }
+  //check for wall collisions
+  if ((snake[0].X < 2)) {
+      snake[0].X=display.width()-2;
+  }
+  else if((snake[0].Y < 2))
+  {
+    snake[0].Y=display.height()-2;
+  }
+  else if((snake[0].X > display.width()-2))
+  {
+    snake[0].X=2;
+  }
+  else if((snake[0].Y > display.height()-2))
+  {
+     snake[0].Y=2;
+  }
+}
 //*************** tasks code ******************
 // This is the code of the tasks, normally they would something more useful !
 
@@ -343,29 +404,52 @@ void playGame() {
   handleColisions();
   updateValues(); 
 }
+void playGame2() {
+  handleColisions2();
+  updateValues(); 
+}
+void draw2(){
+  display.clearDisplay();
+  display.drawRect(0, 0, display.width(), display.height(), BLACK);
+  display.display();
+    drawSnake();
+    drawFood();
+}
 void draw(){
+  display.clearDisplay();
+  display.display();
     drawSnake();
     drawFood();
 }
 void get_key() {
+  
   if (digitalRead(LEFT) == 0 && snakeDir != 1)
   {
+    Serial.write("LEFT\n");
     snakeDir = 0; // left
   }
   else if (digitalRead(RIGHT) == 0 && snakeDir != 0)
   {
+    Serial.write("RIGTH\n");
     snakeDir = 1; // right
   }
   else if (digitalRead(DOWN) == 0 && snakeDir != 3)
   {
+    Serial.write("DOWN\n");
     snakeDir = 2; // down
   }
   else if (digitalRead(UP) == 0 && snakeDir != 2)
   {
+    Serial.write("UP\n");
     snakeDir = 3; // up
   }
 }
-
+void beepComida()
+{
+   digitalWrite(BEEP,HIGH);
+   delay(100);
+   digitalWrite(BEEP,LOW);
+}
 
 /*****************  Arduino framework  ********************/
 
@@ -374,24 +458,209 @@ void get_key() {
 
 void setup() {
   Serial.begin(9600);
-
+   
+  
+  snake[0].X=6;
+  snake[0].Y=6;
+  snakeFood.X=6;
+  snakeFood.Y=6;
   //Inicializar butões
-  pinMode(LEFT,INPUT);
-  pinMode(RIGHT,INPUT);
-  pinMode(UP,INPUT);
-  pinMode(DOWN,INPUT);
+    pinMode(LEFT, INPUT_PULLUP);
+  pinMode(RIGHT, INPUT_PULLUP);
+  pinMode(DOWN, INPUT_PULLUP);
+  pinMode(UP, INPUT_PULLUP);
+  pinMode(BEEP,OUTPUT);
   
   display.begin();
   // init done
 
   // you can change the contrast around to adapt the display
   // for the best viewing!
-  display.setContrast(50);
-
-  display.display(); // show splashscreen
+  display.setContrast(100);
+  display.display();// show splashscreen
   display.clearDisplay();
   // falta o resto (MENU)
+    display.setTextSize(1);      
+  display.setTextColor(BLACK);
+  display.setCursor(display.width()/2-display.width()/2,0);
+  display.print("SNAKUINO MENU");
+  display.fillTriangle(display.width()/2+2,display.height()/2-5,display.width()/2+7,display.height()/2-10,display.width()/2+12,display.height()/2-5,BLACK);
+  display.setCursor(display.width()/2-display.width()/2,display.height()/2);
+  display.print("LEVEL:");
+  display.setCursor(display.width()/2+5,display.height()/2);
+  display.print(level);
+  display.fillTriangle(display.width()/2+2,display.height()/2+10,display.width()/2+7,display.height()/2+15,display.width()/2+12,display.height()/2+10,BLACK);
+  display.display();
+  while(digitalRead(RIGHT) != 0){
 
+       if(digitalRead(UP) == 0)
+       {
+        display.clearDisplay();
+        display.setTextSize(1);      
+        display.setTextColor(BLACK);
+        display.setCursor(display.width()/2-display.width()/2,0);
+        display.print("SNAKUINO MENU");
+        display.setCursor(display.width()/2-display.width()/2,display.height()/2);
+        display.print("LEVEL:");
+        display.setCursor(display.width()/2+5,display.height()/2);
+       
+        display.fillTriangle(display.width()/2+2,display.height()/2+10,display.width()/2+7,display.height()/2+15,display.width()/2+12,display.height()/2+10,BLACK);
+        display.print(level);
+        display.display();
+        
+        delay(200);
+        if(level<LEVEL_MAX)
+          level= level+1;
+        display.clearDisplay();
+        display.setTextSize(1);      
+        display.setTextColor(BLACK);
+        display.setCursor(display.width()/2-display.width()/2,0);
+        display.print("SNAKUINO MENU");
+        display.setCursor(display.width()/2-display.width()/2,display.height()/2);
+        display.print("LEVEL:");
+        display.setCursor(display.width()/2+5,display.height()/2);
+        display.fillTriangle(display.width()/2+2,display.height()/2+10,display.width()/2+7,display.height()/2+15,display.width()/2+12,display.height()/2+10,BLACK);
+        display.print(level);       
+        display.fillTriangle(display.width()/2+2,display.height()/2-5,display.width()/2+7,display.height()/2-10,display.width()/2+12,display.height()/2-5,BLACK);
+         display.display();
+       
+       }
+       else if(digitalRead(DOWN) == 0)
+       {
+        
+        display.clearDisplay();
+        display.setTextSize(1);      
+        display.setTextColor(BLACK);
+        display.setCursor(display.width()/2-display.width()/2,0);
+        display.print("SNAKUINO MENU");
+        display.setCursor(display.width()/2-display.width()/2,display.height()/2);
+        display.print("LEVEL:");
+        display.setCursor(display.width()/2+5,display.height()/2);
+        display.fillTriangle(display.width()/2+2,display.height()/2-5,display.width()/2+7,display.height()/2-10,display.width()/2+12,display.height()/2-5,BLACK);       
+        display.print(level);
+        display.display();
+        
+        delay(200);
+        if(level>1)
+         level= level-1;
+        display.clearDisplay();
+        display.setTextSize(1);      
+        display.setTextColor(BLACK);
+        display.setCursor(display.width()/2-display.width()/2,0);
+        display.print("SNAKUINO MENU");
+        display.setCursor(display.width()/2-display.width()/2,display.height()/2);
+        display.print("LEVEL:");
+        display.setCursor(display.width()/2+5,display.height()/2);
+        display.fillTriangle(display.width()/2+2,display.height()/2+10,display.width()/2+7,display.height()/2+15,display.width()/2+12,display.height()/2+10,BLACK);
+        display.fillTriangle(display.width()/2+2,display.height()/2-5,display.width()/2+7,display.height()/2-10,display.width()/2+12,display.height()/2-5,BLACK);       
+        display.print(level);     
+        display.display();
+        
+       }
+    
+    }
+    delay(1000);
+  display.clearDisplay();
+  // falta o resto (MENU)
+  display.setTextSize(1);      
+  display.setTextColor(BLACK);
+  display.setCursor(display.width()/2-display.width()/2,0);
+  display.print("SNAKUINO MENU");
+  display.fillTriangle(display.width()/2+2,display.height()/2-5,display.width()/2+7,display.height()/2-10,display.width()/2+12,display.height()/2-5,BLACK);
+  display.setCursor(display.width()/2-display.width()/2,display.height()/2);
+  display.print("Speed:");
+  display.setCursor(display.width()/2-5,display.height()/2);
+  display.print("NORMAL");
+  display.fillTriangle(display.width()/2+2,display.height()/2+10,display.width()/2+7,display.height()/2+15,display.width()/2+12,display.height()/2+10,BLACK);
+  display.display();
+  
+  while(digitalRead(RIGHT) != 0){
+      if(digitalRead(UP) == 0)
+       {
+        display.clearDisplay();
+        display.setTextSize(1);      
+        display.setTextColor(BLACK);
+        display.setCursor(display.width()/2-display.width()/2,0);
+        display.print("SNAKUINO MENU");
+        display.setCursor(display.width()/2-display.width()/2,display.height()/2);
+        display.print("Speed:");
+        display.setCursor(display.width()/2-5,display.height()/2);
+       
+        display.fillTriangle(display.width()/2+2,display.height()/2+10,display.width()/2+7,display.height()/2+15,display.width()/2+12,display.height()/2+10,BLACK);
+        if(speed==1)
+          display.print("NORMAL");
+        else if(speed==2)
+          display.print("FAST");
+        else if(speed==0)
+          display.print("SLOW");
+        display.display();
+        
+        delay(200);
+        if(speed<2)
+         speed = speed+1;
+        display.clearDisplay();
+        display.setTextSize(1);      
+        display.setTextColor(BLACK);
+        display.setCursor(display.width()/2-display.width()/2,0);
+        display.print("SNAKUINO MENU");
+        display.setCursor(display.width()/2-display.width()/2,display.height()/2);
+        display.print("Speed:");
+        display.setCursor(display.width()/2-5,display.height()/2);
+        display.fillTriangle(display.width()/2+2,display.height()/2+10,display.width()/2+7,display.height()/2+15,display.width()/2+12,display.height()/2+10,BLACK);
+        if(speed==1)
+          display.print("NORMAL");
+        else if(speed==2)
+          display.print("FAST");
+        else if(speed==0)
+          display.print("SLOW");      
+        display.fillTriangle(display.width()/2+2,display.height()/2-5,display.width()/2+7,display.height()/2-10,display.width()/2+12,display.height()/2-5,BLACK);
+         display.display();
+       
+       }
+       else if(digitalRead(DOWN) == 0)
+       {
+        
+        display.clearDisplay();
+        display.setTextSize(1);      
+        display.setTextColor(BLACK);
+        display.setCursor(display.width()/2-display.width()/2,0);
+        display.print("SNAKUINO MENU");
+        display.setCursor(display.width()/2-display.width()/2,display.height()/2);
+        display.print("Speed:");
+        display.setCursor(display.width()/2-5,display.height()/2);
+        display.fillTriangle(display.width()/2+2,display.height()/2-5,display.width()/2+7,display.height()/2-10,display.width()/2+12,display.height()/2-5,BLACK);       
+        if(speed==1)
+          display.print("NORMAL");
+        else if(speed==2)
+          display.print("FAST");
+        else if(speed==0)
+          display.print("SLOW");
+        display.display();
+        
+        delay(200);
+        if(speed>0)
+         speed = speed-1;
+        display.clearDisplay();
+        display.setTextSize(1);      
+        display.setTextColor(BLACK);
+        display.setCursor(display.width()/2-display.width()/2,0);
+        display.print("SNAKUINO MENU");
+        display.setCursor(display.width()/2-display.width()/2,display.height()/2);
+        display.print("Speed:");
+        display.setCursor(display.width()/2-5,display.height()/2);
+        display.fillTriangle(display.width()/2+2,display.height()/2+10,display.width()/2+7,display.height()/2+15,display.width()/2+12,display.height()/2+10,BLACK);
+        display.fillTriangle(display.width()/2+2,display.height()/2-5,display.width()/2+7,display.height()/2-10,display.width()/2+12,display.height()/2-5,BLACK);       
+       if(speed==1)
+          display.print("NORMAL");
+        else if(speed==2)
+          display.print("FAST");
+        else if(speed==0)
+          display.print("SLOW");     
+        display.display();
+        
+       }
+  }
+  delay(1000);
   // run the kernel initialization routine
   Sched_Init();
 
@@ -402,9 +671,18 @@ void setup() {
   Sched_AddT(T2, 1, 80);
   Sched_AddT(T1, 1, 160);  // T1 with lowest priority, observe preemption
   */
-  Sched_AddT(get_key, 1, 40);   // highest priority
-  Sched_AddT( playGame, 1, 80);
-  Sched_AddT(draw, 1,150);
+  if(level==1)
+  {
+  Sched_AddT(get_key, 1, 20);   // highest priority
+  Sched_AddT( playGame, 1, 50);
+  Sched_AddT(draw, 1,80);
+  }
+  else if(level ==2)
+  {
+      Sched_AddT(get_key, 1, 20);   // highest priority
+      Sched_AddT( playGame2, 1, 50);
+      Sched_AddT(draw2, 1,80);
+  }
   noInterrupts(); // disable all interrupts
 
   // timer 1 control registers
@@ -413,10 +691,17 @@ void setup() {
   TCNT1 = 0;
 
   // register for the frequency of timer 1
-  OCR1A = 625; // compare match register 16MHz/256/100Hz -- tick = 10ms
+  //OCR1A = 625; // compare match register 16MHz/256/100Hz -- tick = 10ms
+  if(speed==1)
+     OCR1A=  250; //250 HZ
+  else if(speed==2)
+     OCR1A=  125;  // 500 HZ
+  else if(speed==0)
+      OCR1A=  625; //100 HZ
+   
   //OCR1A = 6250; // compare match register 16MHz/256/10Hz
   //OCR1A = 31250; // compare match register 16MHz/256/2Hz
-  //OCR1A = 31;    // compare match register 16MHz/256/2kHz
+ //OCR1A = 31;    // compare match register 16MHz/256/2kHz
   TCCR1B |= (1 << WGM12); // CTC mode
   TCCR1B |= (1 << CS12); // 256 prescaler
   TIMSK1 |= (1 << OCIE1A); // enable timer compare interrupt
