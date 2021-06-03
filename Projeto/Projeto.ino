@@ -53,13 +53,6 @@
 //Adafruit_PCD8544 display = Adafruit_PCD8544(7, 6, 5, 4, 3);
   Adafruit_PCD8544 display = Adafruit_PCD8544(5, 4, 3);
 
-// these are HW definitions
-// LEDs ports
-#define d1 13  // built-in LED - positive logic
-
-#define ON LOW   // built-in LED has positive log                                                   ic
-#define OFF HIGH
-
 //diameter of the gameItemSize
 unsigned int gameItemSize = 2,level=1;
 volatile unsigned int snakeSize = 4;
@@ -228,8 +221,9 @@ void drawGameOver() {
   }
 }
 void drawFood() {
+    Serial.println("A CRIAR COMIDA");
     display.fillRect(snakeFood.X,snakeFood.Y,2,2,BLACK);          
-    display.display();            
+              
   }
 
 void spawnSnakeFood() {
@@ -239,36 +233,20 @@ void spawnSnakeFood() {
 
   randomSeed(analogRead(A0));
   
-    while (snakeFood.X %4 != 0 || f==1)
-    {
-       
-      
+    while (snakeFood.X %4 != 0 || snakeFood.Y % 4 != 0 || f==1)
+    {             
         snakeFood.X = random(2, display.width()-2);
-        f=0;
-       
-        for(int i=0; i<=snakeSize;i++)
-        {
-          if(snakeFood.X == snake[i].X)
-          {
-            f=1;
-          }
-        }
-        
-      
-    } 
-    f=1;
-    while (snakeFood.Y % 4 != 0 || f==1){
-        
         snakeFood.Y = random(2, display.height()-2);
         f=0;
-        
+       
         for(int i=0; i<=snakeSize;i++)
         {
-          if(snakeFood.Y == snake[i].Y)
+          if(snakeFood.X == snake[i].X && snakeFood.Y == snake[i].Y)
           {
             f=1;
           }
         }
+    
     } 
   Serial.print(snakeFood.X );
   Serial.write("  ");
@@ -277,7 +255,7 @@ void spawnSnakeFood() {
 void drawSnake() {
   for (unsigned int i = 0; i < snakeSize; i++) {
     display.fillRect(snake[i].X,snake[i].Y,2,2,BLACK);  
-    display.display(); 
+    
  }
 }
 void updateValues() {
@@ -369,37 +347,6 @@ void handleColisions() {
 //*************** tasks code ******************
 // This is the code of the tasks, normally they would something more useful !
 
-
-
-void T1() {
-
-  Serial.write('S');
-  digitalWrite(d1, ON);
-  delay(random(200, 500)); // random "execution time" between 200 and 500 ms
-  digitalWrite(d1, OFF);   // despite being a "long" task, it is preempted to allow
-  Serial.println('F');     // other tasks to execute (see their numbers between S and F
-}
-
-
-void T2() {
-
-  Serial.write('2');
-  delay(70);
-}
-
-
-void T3() {
-
-  Serial.write('3');
-  delay(30);
-}
-
-
-void T4() {
-
-  Serial.write('4');
-  delay(80);
-}
 void playGame() {
   handleColisions();
   updateValues(); 
@@ -411,15 +358,18 @@ void playGame2() {
 void draw2(){
   display.clearDisplay();
   display.drawRect(0, 0, display.width(), display.height(), BLACK);
-  display.display();
-    drawSnake();
-    drawFood();
+   drawSnake();
+   drawFood();
+   display.display();
 }
 void draw(){
+  unsigned long a=micros();
   display.clearDisplay();
-  display.display();
     drawSnake();
     drawFood();
+      display.display(); 
+  Serial.println(micros()-a);
+ 
 }
 void get_key() {
   
@@ -458,8 +408,6 @@ void beepComida()
 
 void setup() {
   Serial.begin(9600);
-   
-  
   snake[0].X=6;
   snake[0].Y=6;
   snakeFood.X=6;
@@ -666,16 +614,12 @@ void setup() {
 
   // add all periodic tasks  (code, offset, period) in ticks
   // for the moment, ticks in 10ms -- see below timer frequency
-  /*Sched_AddT(T4, 1, 10);   // highest priority
-  Sched_AddT(T3, 1, 40);
-  Sched_AddT(T2, 1, 80);
-  Sched_AddT(T1, 1, 160);  // T1 with lowest priority, observe preemption
-  */
+  
   if(level==1)
   {
   Sched_AddT(get_key, 1, 20);   // highest priority
   Sched_AddT( playGame, 1, 50);
-  Sched_AddT(draw, 1,80);
+  Sched_AddT(draw, 1,60);
   }
   else if(level ==2)
   {
@@ -695,7 +639,7 @@ void setup() {
   if(speed==1)
      OCR1A=  250; //250 HZ
   else if(speed==2)
-     OCR1A=  125;  // 500 HZ
+     OCR1A=  125;  // 2k HZ
   else if(speed==0)
       OCR1A=  625; //100 HZ
    
