@@ -42,6 +42,8 @@
 #include <SPI.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_PCD8544.h>
+#include <EEPROM.h>
+
 
 #define RIGHT 7 // Pin 7 connect to RIGHT button
 #define LEFT 6  // Pin 6 connect to LEFT button
@@ -50,6 +52,7 @@
 #define BEEP 10
 #define MAX_LENGTH 100  // Max snake's length, need less than 89 because arduino don't have more memory
 #define LEVEL_MAX 3
+
 //Adafruit_PCD8544 display = Adafruit_PCD8544(7, 6, 5, 4, 3);
   Adafruit_PCD8544 display = Adafruit_PCD8544(5, 4, 3);
 
@@ -188,36 +191,27 @@ void Sched_Dispatch(void) {
   }
 }
 void drawGameOver() {
-  char points[]= {' ',' ',' ','\n'}; // put '1' instead of '0' , it will ignore :v
-  snakeSize -= 5;
-  if (snakeSize < 10)
-  {
-    points[2] = snakeSize + '0';
-  }
-  else if(snakeSize >= 10 && snakeSize < 100)
-  {
-    points[1] = (snakeSize / 10) + '0';
-    points[2] = (snakeSize % 10) + '0';
-  }
-  else if (snakeSize >= 100)
-  {
-    points[2] = (snakeSize % 10) + '0';
-    snakeSize /= 10;
-    points[0] = (snakeSize / 10) + '0';
-    points[1] = (snakeSize % 10) + '0';
-  }
-  
+  int points; // put '1' instead of '0' , it will ignore :v
+
+  points= snakeSize-5;
+ 
   while(1)
   {
-     display.clearDisplay();
+      
+      display.clearDisplay();
       display.setTextColor(BLACK);       
       display.setTextSize(1);
-      display.setCursor(20,12);
-      display.print("Game Over");
-      display.setCursor(15,30);
-      display.print("Score: ");
+      display.setCursor(display.width()/2-display.width()/4-5,0);
+      display.print("GAME OVER");
+      display.setCursor(display.width()/2-display.width()/2,display.height()/2);
+      display.print("SCORE: ");
       display.print(points);
-      display.setCursor(15,40);
+      display.setCursor(display.width()/2-display.width()/2,display.height()/2+display.height()/4);
+      display.print("HIGH SCORE: ");
+      if(points > EEPROM.read(0))
+        EEPROM.write(0,points);
+      display.print(EEPROM.read(0));
+      display.display();
   }
 }
 void drawFood() {
@@ -266,7 +260,7 @@ void updateValues() {
 
   //Now update the head
   //move left
-  if (snakeDir == 0)
+  if (snakeDir == 0 )
     snake[0].X -= gameItemSize;
     
   //move right
@@ -280,6 +274,33 @@ void updateValues() {
   //move up
   else if (snakeDir == 3) 
     snake[0].Y -= gameItemSize;
+    
+ if(snake[0].X==snake[2].X && snake[0].Y==snake[2].Y)
+  {
+    Serial.println("ERRROOO");
+    //Now update the head
+    //move left
+   if (snakeDir == 0 )
+    snake[0].X += gameItemSize*2;
+    //move right
+    else if (snakeDir == 1)
+    snake[0].X -= gameItemSize*2;
+
+    //move down
+     else if (snakeDir == 2)
+    snake[0].Y -= gameItemSize*2;
+
+    //move up
+    else if (snakeDir == 3) 
+    snake[0].Y += gameItemSize*2;
+  }
+    Serial.print(snake[0].X);
+    Serial.print(" ");
+     Serial.print(snake[0].Y);
+     Serial.print(" / ");
+     Serial.print(snake[2].X);
+    Serial.print(" ");
+     Serial.print(snake[2].Y);
 }
 
 void handleColisions2() {
@@ -418,7 +439,7 @@ void setup() {
   pinMode(DOWN, INPUT_PULLUP);
   pinMode(UP, INPUT_PULLUP);
   pinMode(BEEP,OUTPUT);
-  
+
   display.begin();
   // init done
 
@@ -611,21 +632,53 @@ void setup() {
   delay(1000);
   // run the kernel initialization routine
   Sched_Init();
-
+  
   // add all periodic tasks  (code, offset, period) in ticks
   // for the moment, ticks in 10ms -- see below timer frequency
-  
+  // ticks a cada 2ms
   if(level==1)
   {
-  Sched_AddT(get_key, 1, 20);   // highest priority
-  Sched_AddT( playGame, 1, 50);
-  Sched_AddT(draw, 1,60);
+    if(speed==1)
+   {  
+    Sched_AddT(get_key, 1, 20);   // highest priority
+    Sched_AddT( playGame, 1, 100);
+    Sched_AddT(draw, 1,100);
+   }
+  else if(speed==2)
+  {
+    Sched_AddT(get_key, 1, 20);   // highest priority
+    Sched_AddT( playGame, 1, 50);
+    Sched_AddT(draw, 1,50);
+  }
+  else if(speed==0)
+  {
+     Sched_AddT(get_key, 1, 20);   // highest priority
+    Sched_AddT( playGame, 1, 150);
+    Sched_AddT(draw, 1,150);
+  }
+  
   }
   else if(level ==2)
   {
-      Sched_AddT(get_key, 1, 20);   // highest priority
+    if(speed==1)
+   {  
+     Sched_AddT(get_key, 1, 40);   // highest priority
       Sched_AddT( playGame2, 1, 50);
       Sched_AddT(draw2, 1,80);
+   }
+    else if(speed==2)
+  {
+     Sched_AddT(get_key, 1, 40);   // highest priority
+      Sched_AddT( playGame2, 1, 50);
+      Sched_AddT(draw2, 1,80);
+  }
+    else if(speed==0)
+  {
+      Sched_AddT(get_key, 1, 40);   // highest priority
+      Sched_AddT( playGame2, 1, 50);
+      Sched_AddT(draw2, 1,80);
+  }
+     
   }
   noInterrupts(); // disable all interrupts
 
@@ -636,12 +689,9 @@ void setup() {
 
   // register for the frequency of timer 1
   //OCR1A = 625; // compare match register 16MHz/256/100Hz -- tick = 10ms
-  if(speed==1)
-     OCR1A=  250; //250 HZ
-  else if(speed==2)
-     OCR1A=  125;  // 2k HZ
-  else if(speed==0)
-      OCR1A=  625; //100 HZ
+  
+     OCR1A=  125;  // 500 HZ
+  
    
   //OCR1A = 6250; // compare match register 16MHz/256/10Hz
   //OCR1A = 31250; // compare match register 16MHz/256/2Hz
