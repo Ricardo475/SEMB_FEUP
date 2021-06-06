@@ -325,6 +325,7 @@ void spawnSnakeFood3() {
           if((snakeFood.X == snake[i].X && snakeFood.Y == snake[i].Y) || (snakeFood.X >=18 && snakeFood.X<66 && snakeFood.Y==12) ||(snakeFood.X >=18 && snakeFood.X<66 && snakeFood.Y==36) || (snakeFood.Y >=14 && snakeFood.Y<36 && snakeFood.X==12 )|| (snakeFood.Y >=14 && snakeFood.Y<36 && snakeFood.X==72 ))
           {
             f=1;
+            Serial.println("nasceu mal");
           }
         }
     
