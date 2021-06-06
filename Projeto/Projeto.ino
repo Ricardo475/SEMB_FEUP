@@ -208,14 +208,75 @@ void drawGameOver() {
       display.print(points);
       display.setCursor(display.width()/2-display.width()/2,display.height()/2+display.height()/4);
       display.print("HIGH SCORE: ");
-      if(points > EEPROM.read(0))
-        EEPROM.write(0,points);
-      display.print(EEPROM.read(0));
+      if(level==1)
+      {
+        if(speed==0)
+        {
+          if(points > EEPROM.read(0))
+            EEPROM.write(0,points);
+          display.print(EEPROM.read(0));
+          Serial.println("OLA "+EEPROM.read(0));
+        }
+        else if(speed==1)
+        {
+          if(points > EEPROM.read(1))
+            EEPROM.write(1,points);
+          display.print(EEPROM.read(1));
+        }
+         else if(speed==2)
+        {
+          if(points > EEPROM.read(2))
+            EEPROM.write(2,points);
+          display.print(EEPROM.read(2));
+        }
+      }
+      else if(level==2)
+      {
+        if(speed==0)
+        {
+          if(points > EEPROM.read(3))
+            EEPROM.write(3,points);
+          display.print(EEPROM.read(3));
+        }
+        else if(speed==1)
+        {
+          if(points > EEPROM.read(4))
+            EEPROM.write(4,points);
+          display.print(EEPROM.read(4));
+        }
+         else if(speed==2)
+        {
+          if(points > EEPROM.read(5))
+            EEPROM.write(5,points);
+          display.print(EEPROM.read(5));
+        }
+      }
+      else if(level==3)
+      {
+        if(speed==0)
+        {
+          if(points > EEPROM.read(6))
+            EEPROM.write(6,points);
+          display.print(EEPROM.read(6));
+        }
+        else if(speed==1)
+        {
+          if(points > EEPROM.read(7))
+            EEPROM.write(7,points);
+          display.print(EEPROM.read(7));
+        }
+         else if(speed==2)
+        {
+          if(points > EEPROM.read(8))
+            EEPROM.write(8,points);
+          display.print(EEPROM.read(8));
+        }
+      }
       display.display();
   }
 }
 void drawFood() {
-    Serial.println("A CRIAR COMIDA");
+    
     display.fillRect(snakeFood.X,snakeFood.Y,2,2,BLACK);          
               
   }
@@ -236,6 +297,32 @@ void spawnSnakeFood() {
         for(int i=0; i<=snakeSize;i++)
         {
           if(snakeFood.X == snake[i].X && snakeFood.Y == snake[i].Y)
+          {
+            f=1;
+          }
+        }
+    
+    } 
+  Serial.print(snakeFood.X );
+  Serial.write("  ");
+  Serial.print(snakeFood.Y );
+}
+void spawnSnakeFood3() {
+  //generate snake Food position and avoid generate on position of snake
+  unsigned int i = 1;
+  unsigned int f = 1;
+
+  randomSeed(analogRead(A0));
+  
+    while (snakeFood.X %4 != 0 || snakeFood.Y % 4 != 0 || f==1)
+    {             
+        snakeFood.X = random(2, display.width()-2);
+        snakeFood.Y = random(2, display.height()-2);
+        f=0;
+       
+        for(int i=0; i<=snakeSize;i++)
+        {
+          if((snakeFood.X == snake[i].X && snakeFood.Y == snake[i].Y)|| (snake[0].Y > display.height()-2) || (snake[0].X >=20 && snake[0].X<64 && snake[0].Y==12) ||(snake[0].X >=20 && snake[0].X<64 && snake[0].Y==36) || (snake[0].Y >=16 && snake[0].Y<34 && snake[0].X==12 )|| (snake[0].Y >=16 && snake[0].Y<34 && snake[0].X==72 ))
           {
             f=1;
           }
@@ -275,7 +362,7 @@ void updateValues() {
   else if (snakeDir == 3) 
     snake[0].Y -= gameItemSize;
     
- if(snake[0].X==snake[2].X && snake[0].Y==snake[2].Y)
+ if((snake[0].X==snake[2].X && snake[0].Y==snake[2].Y)|| (snake[0].X==snake[1].X && snake[0].Y==snake[1].Y))
   {
     Serial.println("ERRROOO");
     //Now update the head
@@ -294,13 +381,35 @@ void updateValues() {
     else if (snakeDir == 3) 
     snake[0].Y += gameItemSize*2;
   }
-    Serial.print(snake[0].X);
-    Serial.print(" ");
-     Serial.print(snake[0].Y);
-     Serial.print(" / ");
-     Serial.print(snake[2].X);
-    Serial.print(" ");
-     Serial.print(snake[2].Y);
+   
+}
+
+//VER
+void handleColisions3() {
+  //check if snake eats food
+  if (snake[0].X == snakeFood.X && snake[0].Y == snakeFood.Y) {
+    //increase snakeSize
+   //Serial.write("sup");
+    snakeSize++;
+    //regen food
+    //spawnSnakeFood();
+    Sched_AddT(spawnSnakeFood3, 1, 0);
+     Sched_AddT(beepComida, 10, 0);
+  }
+
+  //check if snake collides with itself
+  else {
+    for (unsigned int i = 1; i < snakeSize; i++) {
+      if (snake[0].X == snake[i].X && snake[0].Y == snake[i].Y) {
+        drawGameOver();
+      }
+    }
+  }
+  //check for wall collisions
+  if ((snake[0].X < 2) || (snake[0].Y < 2) || (snake[0].X > display.width()-2) || (snake[0].Y > display.height()-2) || (snake[0].X >=20 && snake[0].X<64 && snake[0].Y==12) ||(snake[0].X >=20 && snake[0].X<64 && snake[0].Y==36) || (snake[0].Y >=16 && snake[0].Y<34 && snake[0].X==12 )|| (snake[0].Y >=16 && snake[0].Y<34 && snake[0].X==72 )) {
+    drawGameOver();
+  }
+  
 }
 
 void handleColisions2() {
@@ -376,6 +485,21 @@ void playGame2() {
   handleColisions2();
   updateValues(); 
 }
+void playGame3() {
+  handleColisions3();
+  updateValues(); 
+}
+void draw3(){
+  display.clearDisplay();
+  display.drawRect(0, 0, display.width(), display.height(), BLACK); // area limite
+  display.drawRect(20, 12, 44, 2, BLACK); // linha cima
+  display.drawRect(12, 16, 2, 18, BLACK); // linha esquerda
+  display.drawRect(72, 16, 2, 18, BLACK); // linha direita
+  display.drawRect(20, 36,44,2, BLACK); // linha de baixo
+   drawSnake();
+   drawFood();
+   display.display();
+}
 void draw2(){
   display.clearDisplay();
   display.drawRect(0, 0, display.width(), display.height(), BLACK);
@@ -389,7 +513,7 @@ void draw(){
     drawSnake();
     drawFood();
       display.display(); 
-  Serial.println(micros()-a);
+  //Serial.println(micros()-a);
  
 }
 void get_key() {
@@ -642,19 +766,19 @@ void setup() {
    {  
     Sched_AddT(get_key, 1, 20);   // highest priority
     Sched_AddT( playGame, 1, 100);
-    Sched_AddT(draw, 1,100);
+    Sched_AddT(draw, 1,120);
    }
   else if(speed==2)
   {
     Sched_AddT(get_key, 1, 20);   // highest priority
     Sched_AddT( playGame, 1, 50);
-    Sched_AddT(draw, 1,50);
+    Sched_AddT(draw, 1,70);
   }
   else if(speed==0)
   {
      Sched_AddT(get_key, 1, 20);   // highest priority
     Sched_AddT( playGame, 1, 150);
-    Sched_AddT(draw, 1,150);
+    Sched_AddT(draw, 1,170);
   }
   
   }
@@ -662,23 +786,44 @@ void setup() {
   {
     if(speed==1)
    {  
-     Sched_AddT(get_key, 1, 40);   // highest priority
-      Sched_AddT( playGame2, 1, 50);
-      Sched_AddT(draw2, 1,80);
+     Sched_AddT(get_key, 1, 20);   // highest priority
+      Sched_AddT( playGame2, 1, 100);
+      Sched_AddT(draw2, 1,100);
    }
     else if(speed==2)
   {
-     Sched_AddT(get_key, 1, 40);   // highest priority
+     Sched_AddT(get_key, 1, 20);   // highest priority
       Sched_AddT( playGame2, 1, 50);
-      Sched_AddT(draw2, 1,80);
+      Sched_AddT(draw2, 1,50);
   }
     else if(speed==0)
   {
-      Sched_AddT(get_key, 1, 40);   // highest priority
-      Sched_AddT( playGame2, 1, 50);
-      Sched_AddT(draw2, 1,80);
+      Sched_AddT(get_key, 1, 20);   // highest priority
+      Sched_AddT( playGame2, 1, 150);
+      Sched_AddT(draw2, 1,150);
   }
      
+  }
+  else if(level == 3)
+  {
+      if(speed==1)
+   {  
+    Sched_AddT(get_key, 1, 20);   // highest priority
+      Sched_AddT( playGame3, 1, 100);
+      Sched_AddT(draw3, 1,100);
+   }
+    else if(speed==2)
+  {
+     Sched_AddT(get_key, 1, 20);   // highest priority
+      Sched_AddT( playGame3, 1, 50);
+      Sched_AddT(draw3, 1,50);
+  }
+    else if(speed==0)
+  {
+      Sched_AddT(get_key, 1, 20);   // highest priority
+      Sched_AddT( playGame3, 1, 150);
+      Sched_AddT(draw3, 1,150);
+  }
   }
   noInterrupts(); // disable all interrupts
 
