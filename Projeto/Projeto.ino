@@ -322,7 +322,7 @@ void spawnSnakeFood3() {
        
         for(int i=0; i<=snakeSize;i++)
         {
-          if((snakeFood.X == snake[i].X && snakeFood.Y == snake[i].Y)|| (snake[0].Y > display.height()-2) || (snake[0].X >=20 && snake[0].X<64 && snake[0].Y==12) ||(snake[0].X >=20 && snake[0].X<64 && snake[0].Y==36) || (snake[0].Y >=16 && snake[0].Y<34 && snake[0].X==12 )|| (snake[0].Y >=16 && snake[0].Y<34 && snake[0].X==72 ))
+          if((snakeFood.X == snake[i].X && snakeFood.Y == snake[i].Y)|| (snake[0].Y > display.height()-2) || (snake[0].X >=18 && snake[0].X<66 && snake[0].Y==12) ||(snake[0].X >=18 && snake[0].X<66 && snake[0].Y==36) || (snake[0].Y >=14 && snake[0].Y<36 && snake[0].X==12 )|| (snake[0].Y >=14 && snake[0].Y<36 && snake[0].X==72 ))
           {
             f=1;
           }
