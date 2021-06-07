@@ -273,6 +273,7 @@ void drawGameOver() {
         }
       }
       display.display();
+  
   }
 }
 void drawFood() {
@@ -564,7 +565,6 @@ void setup() {
   pinMode(DOWN, INPUT_PULLUP);
   pinMode(UP, INPUT_PULLUP);
   pinMode(BEEP,OUTPUT);
-
   display.begin();
   // init done
 
