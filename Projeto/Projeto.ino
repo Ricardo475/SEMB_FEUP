@@ -18,27 +18,6 @@
 
 */
 
-
-
-/*
-    Most Arduinos have an on-board LED you can control. On the UNO, MEGA and ZERO
-  it is attached to digital pin 13, on MKR1000 on pin 6. LED_BUILTIN is set to
-  the correct LED pin independent of which board is used.
-  If you want to know what pin the on-board LED is connected to on your Arduino
-  model, check the Technical Specs of your board at:
-  https://www.arduino.cc/en/Main/Products
-
-  modified 8 May 2014
-  by Scott Fitzgerald
-  modified 2 Sep 2016
-  by Arturo Guadalupi
-  modified 8 Sep 2016
-  by Colby Newman
-
-  This example code is in the public domain.
-
-  http://www.arduino.cc/en/Tutorial/Blink
-*/
 #include <SPI.h>
 #include <Adafruit_PCD8544.h>
 #include <EEPROM.h>
@@ -59,7 +38,7 @@ uint8_t  gameItemSize = 2,level=1;
 volatile uint8_t  snakeSize = 4;
 volatile uint8_t snakeDir = 1;
 volatile uint8_t speed=1; /* Input from button */
-
+volatile uint8_t points=0;
 
 struct gameItem {
   volatile uint8_t X; /* x position */
@@ -108,9 +87,9 @@ uint8_t Sched_Init(void) {
   /* - Initialise data
     structures.
   */
-  uint8_t x;
-  for (x = 0; x < MAXT; x++)
-    Tasks[x].func = 0;
+  uint8_t xsched_init;
+  for (xsched_init = 0; xsched_init < MAXT; xsched_init++)
+    Tasks[xsched_init].func = 0;
   /* note that "func" will be used to see if a TCB
    is free (func=0) or used (func=pointer to task code)
    - Configure interrupt
@@ -124,15 +103,15 @@ uint8_t Sched_Init(void) {
 /* adding a task to the kernel */
 
 uint8_t Sched_AddT( void (*f)(void), uint8_t d, uint8_t p) {
-  uint8_t x;
-  for (x = 0; x < MAXT; x++)
-    if (!Tasks[x].func) {
+  uint8_t xsched_add;
+  for (xsched_add = 0; xsched_add < MAXT; xsched_add++)
+    if (!Tasks[xsched_add].func) {
       /* finds the first free TCB */
-      Tasks[x].period = p;
-      Tasks[x].offset = d;  /* first activation is "d" after kernel start */
-      Tasks[x].exec = 0;
-      Tasks[x].func = f;
-      return x;
+      Tasks[xsched_add].period = p;
+      Tasks[xsched_add].offset = d;  /* first activation is "d" after kernel start */
+      Tasks[xsched_add].exec = 0;
+      Tasks[xsched_add].func = f;
+      return xsched_add;
     }
   return -1;  /* if no free TCB --> return error */
 }
@@ -143,15 +122,15 @@ uint8_t Sched_AddT( void (*f)(void), uint8_t d, uint8_t p) {
    --> 1st activation at "offset" and then on every "period" */
 
 void Sched_Schedule(void) {
-  uint8_t x;
-  for (x = 0; x < MAXT; x++) {
-    if ((Tasks[x].func) && (Tasks[x].offset)) {
+  uint8_t xsched_sched;
+  for (xsched_sched = 0; xsched_sched < MAXT; xsched_sched++) {
+    if ((Tasks[xsched_sched].func) && (Tasks[xsched_sched].offset)) {
       /* for all existing tasks (func!=0) and not at 0, yet */
-      Tasks[x].offset--;  //decrement counter
-      if (!Tasks[x].offset) {
+      Tasks[xsched_sched].offset--;  //decrement counter
+      if (!Tasks[xsched_sched].offset) {
         /* offset = 0 --> Schedule Task --> set the "exec" flag/counter */
-        Tasks[x].exec = 1;  /* if overrun, following activation is lost */
-        Tasks[x].offset = Tasks[x].period;  /* reset counter */
+        Tasks[xsched_sched].exec = 1;  /* if overrun, following activation is lost */
+        Tasks[xsched_sched].offset = Tasks[xsched_sched].period;  /* reset counter */
       }
     }
   }
@@ -165,32 +144,30 @@ void Sched_Schedule(void) {
 void Sched_Dispatch(void) {
   /* save current task to resume it after preemption */
   uint8_t prev_task;
-  uint8_t x;
+  uint8_t xsched_disp;
   prev_task = cur_task;  /* save currently running task, for the case it is preempted */
-  for (x = 0; x < cur_task; x++) {
+  for (xsched_disp = 0; xsched_disp < cur_task; xsched_disp++) {
     /* x searches from 0 (highest priority) up to x (current task) */
-    if ((Tasks[x].func) && (Tasks[x].exec)) {
+    if ((Tasks[xsched_disp].func) && (Tasks[xsched_disp].exec)) {
       /* if a TCB has a task (func!=0) and there is a pending activation */
-      Tasks[x].exec--;  // decrement (reset) "exec" flag/counter
+      Tasks[xsched_disp].exec--;  /* decrement (reset) "exec" flag/counter */
 
-      cur_task = x;  /* preempt current task with x (new high priority one) */
+      cur_task = xsched_disp;  /* preempt current task with x (new high priority one) */
       interrupts(); /* enable interrupts so that this task can be preempted */
 
-      Tasks[x].func();  // Execute the task
+      Tasks[xsched_disp].func();  /* Execute the task */
 
       noInterrupts(); /* disable interrupts again to continue the dispatcher cycle */
       cur_task = prev_task;  /* resume the task that was preempted (if any) */
 
       /* Delete task if one-shot, i.e., only runs once (period=0 && offset!0) */
-      if (!Tasks[x].period)
-        Tasks[x].func = 0;
+      if (!Tasks[xsched_disp].period)
+        Tasks[xsched_disp].func = 0;
     }
   }
 }
 void drawGameOver() {
-  uint8_t points; /* put '1' instead of '0' , it will ignore :v */
 
-  points= snakeSize-5;
  
   while(true)
   {
@@ -281,75 +258,67 @@ void drawFood() {
 
 void spawnSnakeFood() {
   /* generate snake Food position and avoid generate on position of snake */
-  uint8_t i;
-  uint8_t f = 1;
+  uint8_t iFood;
+  uint8_t fFood = 1;
 
   randomSeed(analogRead(A0));
   
-    while (snakeFood.X %4 != 0 || snakeFood.Y % 4 != 0 || f==1)
+    while (snakeFood.X %4 != 0 || snakeFood.Y % 4 != 0 || fFood==1)
     {             
         snakeFood.X = random(2, display.width()-2);
         snakeFood.Y = random(2, display.height()-2);
-        f=0;
+        fFood=0;
        
-        for(i=0; i<=snakeSize;i++)
+        for(iFood=0; iFood<=snakeSize;iFood++)
         {
-          if(snakeFood.X == snake[i].X && snakeFood.Y == snake[i].Y)
+          if(snakeFood.X == snake[iFood].X && snakeFood.Y == snake[iFood].Y)
           {
-            f=1;
+            fFood=1;
           }
         }
     
     } 
-   /*
-  Serial.print(snakeFood.X );
-  Serial.write("  ");
-  Serial.print(snakeFood.Y );
-  */
+   
 }
 
 void spawnSnakeFood3() {
   /* generate snake Food position and avoid generate on position of snake */
-  uint8_t i;
-  uint8_t f = 1;
+  uint8_t iFood3;
+  uint8_t fFood3 = 1;
 
   randomSeed(analogRead(A0));
   
-    while (snakeFood.X %4 != 0 || snakeFood.Y % 4 != 0 || f==1)
+    while (snakeFood.X %4 != 0 || snakeFood.Y % 4 != 0 || fFood3==1)
     {             
         snakeFood.X = random(2, display.width()-2);
         snakeFood.Y = random(2, display.height()-2);
-        f=0;
+        fFood3=0;
        
-        for(i=0; i<=snakeSize;i++)
+        for(iFood3=0; iFood3<=snakeSize;iFood3++)
         {
-          if((snakeFood.X == snake[i].X && snakeFood.Y == snake[i].Y) || (snakeFood.X >=18 && snakeFood.X<66 && snakeFood.Y==12) ||(snakeFood.X >=18 && snakeFood.X<66 && snakeFood.Y==36) || (snakeFood.Y >=14 && snakeFood.Y<36 && snakeFood.X==12 )|| (snakeFood.Y >=14 && snakeFood.Y<36 && snakeFood.X==72 ))
+          if((snakeFood.X == snake[iFood3].X && snakeFood.Y == snake[iFood3].Y) || (snakeFood.X >=18 && snakeFood.X<66 && snakeFood.Y==12) ||(snakeFood.X >=18 && snakeFood.X<66 && snakeFood.Y==36) || (snakeFood.Y >=14 && snakeFood.Y<36 && snakeFood.X==12 )|| (snakeFood.Y >=14 && snakeFood.Y<36 && snakeFood.X==72 ))
           {
-            f=1;
-           /* Serial.println("nasceu mal");*/
+            fFood3=1;
+          
           }
         }
     
     } 
-    /*
-  Serial.print(snakeFood.X );
-  Serial.write("  ");
-  Serial.print(snakeFood.Y );
-  */
+ 
 }
 void drawSnake() {
-  uint8_t i;
+  uint8_t iSnakeDraw;
   
-  for (i = 0; i < snakeSize; i++) {
-    display.fillRect(snake[i].X,snake[i].Y,2,2,BLACK);  
+  for (iSnakeDraw = 0; iSnakeDraw < snakeSize; iSnakeDraw++) {
+    display.fillRect(snake[iSnakeDraw].X,snake[iSnakeDraw].Y,2,2,BLACK);  
     
  }
 }
 void updateValues() {
   /* update all body parts of the snake excpet the head */
-  uint8_t i;
-  for (i = snakeSize - 1; i > 0; i--)
-    snake[i] = snake[i - 1];
+  uint8_t iUpdateValue;
+  for (iUpdateValue = snakeSize - 1; iUpdateValue > 0; iUpdateValue--)
+    snake[iUpdateValue] = snake[iUpdateValue - 1];
 
   /*Now update the head
     move left*/
@@ -370,20 +339,18 @@ void updateValues() {
     
  if((snake[0].X==snake[2].X && snake[0].Y==snake[2].Y)|| (snake[0].X==snake[1].X && snake[0].Y==snake[1].Y))
   {
-    /*Serial.println("ERRROOO");
-      Now update the head
-      move left */
+   
    if (snakeDir == 0 )
     snake[0].X += gameItemSize*2;
-    /* move right */
+  
     else if (snakeDir == 1)
     snake[0].X -= gameItemSize*2;
 
-    /* move down */
+    
      else if (snakeDir == 2)
     snake[0].Y -= gameItemSize*2;
 
-    /* move up */
+    
     else if (snakeDir == 3) 
     snake[0].Y += gameItemSize*2;
   }
@@ -394,9 +361,10 @@ void updateValues() {
 void handleColisions3() {
   /* check if snake eats food */
   if (snake[0].X == snakeFood.X && snake[0].Y == snakeFood.Y) {
-    /* increase snakeSize
-    Serial.write("sup"); */
-    snakeSize++;
+    /* increase snakeSize */
+    if(snakeSize<100)
+      snakeSize++;
+    points++;
     /*regen food */
     Sched_AddT(spawnSnakeFood3, 1, 0);
     Sched_AddT(beepComida, 10, 0);
@@ -404,9 +372,9 @@ void handleColisions3() {
 
   /* check if snake collides with itself */
   else {
-    uint8_t i;
-    for (i = 1; i < snakeSize; i++) {
-      if (snake[0].X == snake[i].X && snake[0].Y == snake[i].Y) {
+    uint8_t ihandleColision3;
+    for (ihandleColision3 = 1; ihandleColision3 < snakeSize; ihandleColision3++) {
+      if (snake[0].X == snake[ihandleColision3].X && snake[0].Y == snake[ihandleColision3].Y) {
         drawGameOver();
       }
     }
@@ -421,9 +389,10 @@ void handleColisions3() {
 void handleColisions2() {
   /* check if snake eats food */
   if (snake[0].X == snakeFood.X && snake[0].Y == snakeFood.Y) {
-    /* increase snakeSize
-    Serial.write("sup"); */
-    snakeSize++;
+    /* increase snakeSize */
+     if(snakeSize<100)
+      snakeSize++;
+     points++;
     /*regen food */
     Sched_AddT(spawnSnakeFood, 1, 0);
     Sched_AddT(beepComida, 10, 0);
@@ -431,9 +400,9 @@ void handleColisions2() {
 
   /* check if snake collides with itself */
   else {
-    uint8_t i;
-    for (i = 1; i < snakeSize; i++) {
-      if (snake[0].X == snake[i].X && snake[0].Y == snake[i].Y) {
+    uint8_t ihandleColision2;
+    for (ihandleColision2 = 1; ihandleColision2 < snakeSize; ihandleColision2++) {
+      if (snake[0].X == snake[ihandleColision2].X && snake[0].Y == snake[ihandleColision2].Y) {
         drawGameOver();
       }
     }
@@ -446,9 +415,10 @@ void handleColisions2() {
 void handleColisions() {
   /* check if snake eats food */
   if (snake[0].X == snakeFood.X && snake[0].Y == snakeFood.Y) {
-    /*increase snakeSize
-    Serial.write("sup"); */
-    snakeSize++;
+    /*increase snakeSize */
+    if(snakeSize<100)
+      snakeSize++;
+     points++;
     /* regen food */
     Sched_AddT(spawnSnakeFood, 1, 0);
     Sched_AddT(beepComida, 10, 0);
@@ -456,9 +426,9 @@ void handleColisions() {
 
   /* check if snake collides with itself */
   else {
-    uint8_t i;
-    for (i = 1; i < snakeSize; i++) {
-      if (snake[0].X == snake[i].X && snake[0].Y == snake[i].Y) {
+    uint8_t ihandleColision;
+    for (ihandleColision = 1; ihandleColision < snakeSize; ihandleColision++) {
+      if (snake[0].X == snake[ihandleColision].X && snake[0].Y == snake[ihandleColision].Y) {
         drawGameOver();
       }
     }
@@ -483,18 +453,22 @@ void handleColisions() {
 /*************** tasks code ******************/
 
 void playGame() {
+  
   handleColisions();
   updateValues(); 
 }
 void playGame2() {
+
   handleColisions2();
   updateValues(); 
 }
 void playGame3() {
+ 
   handleColisions3();
   updateValues(); 
 }
 void draw3(){
+
   display.clearDisplay();
   display.drawRect(0, 0, display.width(), display.height(), BLACK); /* area limite */
   display.drawRect(20, 12, 44, 2, BLACK); /* linha cima */
@@ -506,24 +480,25 @@ void draw3(){
    display.display();
 }
 void draw2(){
+
   display.clearDisplay();
   display.drawRect(0, 0, display.width(), display.height(), BLACK);
    drawSnake();
    drawFood();
    display.display();
 }
-void draw(){
-  /* uint64_t a=micros(); */
-  
+void draw(){ 
+ 
   display.clearDisplay();
   drawSnake();
   drawFood();
   display.display(); 
-  /* Serial.println(micros()-a); */
  
 }
 void get_key() {
   
+   
+
   if (digitalRead(LEFT) == 0 && snakeDir != 1)
   {
     Serial.write("LEFT\n");
@@ -544,12 +519,16 @@ void get_key() {
     Serial.write("UP\n");
     snakeDir = 3; /* up */
   }
+
 }
 void beepComida()
 {
+ 
    digitalWrite(BEEP,HIGH);
    delay(100);
    digitalWrite(BEEP,LOW);
+   Serial.print("BEEP : ");
+   
 }
 
 /*****************  Arduino framework  ********************/
@@ -559,12 +538,19 @@ void beepComida()
 
 void setup() {
   Serial.begin(9600);
-  snake[0].X=6;
+  snake[0].X=8;
   snake[0].Y=6;
-  snakeFood.X=6;
-  snakeFood.Y=6;
+  snake[1].X=6;
+  snake[1].Y=6;
+  snake[2].X=6;
+  snake[2].Y=6;
+  snake[3].X=6;
+  snake[3].Y=6;
+  snake[4].X=6;
+  snake[4].Y=6;
+  snake[5].X=6;
+  snake[5].Y=6;
   /* Inicializar butões */
-  
   pinMode(LEFT, INPUT_PULLUP);
   pinMode(RIGHT, INPUT_PULLUP);
   pinMode(DOWN, INPUT_PULLUP);
@@ -770,21 +756,28 @@ void setup() {
   {
     if(speed==1)
    {  
+    Sched_AddT(spawnSnakeFood, 1, 0);
     Sched_AddT(get_key, 1, 20);   /* highest priority */
     Sched_AddT( playGame, 1, 100);
     Sched_AddT(draw, 1,120);
+   
    }
   else if(speed==2)
   {
+    Sched_AddT(spawnSnakeFood, 1, 0);  
     Sched_AddT(get_key, 1, 20);   /* highest priority */
     Sched_AddT( playGame, 1, 50);
     Sched_AddT(draw, 1,70);
+
+  
   }
   else if(speed==0)
   {
+    Sched_AddT(spawnSnakeFood, 1, 0);
      Sched_AddT(get_key, 1, 20);   /* highest priority */
     Sched_AddT( playGame, 1, 150);
     Sched_AddT(draw, 1,170);
+    
   }
   
   }
@@ -792,21 +785,27 @@ void setup() {
   {
     if(speed==1)
    {  
+    Sched_AddT(spawnSnakeFood, 1, 0);
      Sched_AddT(get_key, 1, 20);   /* highest priority */
       Sched_AddT( playGame2, 1, 100);
       Sched_AddT(draw2, 1,100);
+      
    }
     else if(speed==2)
   {
+      Sched_AddT(spawnSnakeFood, 1, 0);
      Sched_AddT(get_key, 1, 20);   /* highest priority */
       Sched_AddT( playGame2, 1, 50);
       Sched_AddT(draw2, 1,50);
+      
   }
     else if(speed==0)
   {
-      Sched_AddT(get_key, 1, 20);   // highest priority
+      Sched_AddT(spawnSnakeFood, 1, 0);
+      Sched_AddT(get_key, 1, 20);   /* highest priority */
       Sched_AddT( playGame2, 1, 150);
       Sched_AddT(draw2, 1,150);
+      
   }
      
   }
@@ -814,21 +813,27 @@ void setup() {
   {
       if(speed==1)
    {  
+     Sched_AddT(spawnSnakeFood3, 1, 0);
     Sched_AddT(get_key, 1, 20);   /* highest priority */
       Sched_AddT( playGame3, 1, 100);
       Sched_AddT(draw3, 1,100);
+     
    }
     else if(speed==2)
   {
+      Sched_AddT(spawnSnakeFood3, 1, 0);
      Sched_AddT(get_key, 1, 20);   /* highest priority */
       Sched_AddT( playGame3, 1, 50);
       Sched_AddT(draw3, 1,50);
+    
   }
     else if(speed==0)
   {
+      Sched_AddT(spawnSnakeFood3, 1, 0);
       Sched_AddT(get_key, 1, 20);   /* highest priority */
       Sched_AddT( playGame3, 1, 150);
       Sched_AddT(draw3, 1,150);
+   
   }
   }
   noInterrupts(); /* disable all interrupts */
@@ -838,15 +843,8 @@ void setup() {
   TCCR1B = 0;
   TCNT1 = 0;
 
-  /* register for the frequency of timer 1
-  OCR1A = 625; // compare match register 16MHz/256/100Hz -- tick = 10ms */
-  
-  OCR1A=  125;  /* 500 HZ */
-  
-   
-  /*OCR1A = 6250; // compare match register 16MHz/256/10Hz
-  OCR1A = 31250; // compare match register 16MHz/256/2Hz
-  OCR1A = 31;    // compare match register 16MHz/256/2kHz */
+  /* register for the frequency of timer 1 */   
+  OCR1A=  125;  /* 500 HZ */  
   TCCR1B |= (1 << WGM12); /* CTC mode */
   TCCR1B |= (1 << CS12); /* 256 prescaler */
   TIMSK1 |= (1 << OCIE1A); /* enable timer compare interrupt */
