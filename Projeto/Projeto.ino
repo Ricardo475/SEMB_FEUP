@@ -256,56 +256,7 @@ void drawFood() {
               
   }
 
-void spawnSnakeFood() {
-  /* generate snake Food position and avoid generate on position of snake */
-  uint8_t iFood;
-  uint8_t fFood = 1;
-
-  randomSeed(analogRead(A0));
-  
-    while (snakeFood.X %4 != 0 || snakeFood.Y % 4 != 0 || fFood==1)
-    {             
-        snakeFood.X = random(2, display.width()-2);
-        snakeFood.Y = random(2, display.height()-2);
-        fFood=0;
-       
-        for(iFood=0; iFood<=snakeSize;iFood++)
-        {
-          if(snakeFood.X == snake[iFood].X && snakeFood.Y == snake[iFood].Y)
-          {
-            fFood=1;
-          }
-        }
-    
-    } 
-   
-}
-
-void spawnSnakeFood3() {
-  /* generate snake Food position and avoid generate on position of snake */
-  uint8_t iFood3;
-  uint8_t fFood3 = 1;
-
-  randomSeed(analogRead(A0));
-  
-    while (snakeFood.X %4 != 0 || snakeFood.Y % 4 != 0 || fFood3==1)
-    {             
-        snakeFood.X = random(2, display.width()-2);
-        snakeFood.Y = random(2, display.height()-2);
-        fFood3=0;
-       
-        for(iFood3=0; iFood3<=snakeSize;iFood3++)
-        {
-          if((snakeFood.X == snake[iFood3].X && snakeFood.Y == snake[iFood3].Y) || (snakeFood.X >=18 && snakeFood.X<66 && snakeFood.Y==12) ||(snakeFood.X >=18 && snakeFood.X<66 && snakeFood.Y==36) || (snakeFood.Y >=14 && snakeFood.Y<36 && snakeFood.X==12 )|| (snakeFood.Y >=14 && snakeFood.Y<36 && snakeFood.X==72 ))
-          {
-            fFood3=1;
-          
-          }
-        }
-    
-    } 
- 
-}
+v
 void drawSnake() {
   uint8_t iSnakeDraw;
   
@@ -315,7 +266,7 @@ void drawSnake() {
  }
 }
 void updateValues() {
-  /* update all body parts of the snake excpet the head */
+  /* update all body parts of the snake execpt the head */
   uint8_t iUpdateValue;
   for (iUpdateValue = snakeSize - 1; iUpdateValue > 0; iUpdateValue--)
     snake[iUpdateValue] = snake[iUpdateValue - 1];
@@ -532,7 +483,56 @@ void beepComidaOff()
 {
    digitalWrite(BEEP,LOW);   
 }
+oid spawnSnakeFood() {
+  /* generate snake Food position and avoid generate on position of snake */
+  uint8_t iFood;
+  uint8_t fFood = 1;
 
+  randomSeed(analogRead(A0));
+  
+    while (snakeFood.X %4 != 0 || snakeFood.Y % 4 != 0 || fFood==1)
+    {             
+        snakeFood.X = random(2, display.width()-2);
+        snakeFood.Y = random(2, display.height()-2);
+        fFood=0;
+       
+        for(iFood=0; iFood<=snakeSize;iFood++)
+        {
+          if(snakeFood.X == snake[iFood].X && snakeFood.Y == snake[iFood].Y)
+          {
+            fFood=1;
+          }
+        }
+    
+    } 
+   
+}
+
+void spawnSnakeFood3() {
+  /* generate snake Food position and avoid generate on position of snake */
+  uint8_t iFood3;
+  uint8_t fFood3 = 1;
+
+  randomSeed(analogRead(A0));
+  
+    while (snakeFood.X %4 != 0 || snakeFood.Y % 4 != 0 || fFood3==1)
+    {             
+        snakeFood.X = random(2, display.width()-2);
+        snakeFood.Y = random(2, display.height()-2);
+        fFood3=0;
+       
+        for(iFood3=0; iFood3<=snakeSize;iFood3++)
+        {
+          if((snakeFood.X == snake[iFood3].X && snakeFood.Y == snake[iFood3].Y) || (snakeFood.X >=18 && snakeFood.X<66 && snakeFood.Y==12) ||(snakeFood.X >=18 && snakeFood.X<66 && snakeFood.Y==36) || (snakeFood.Y >=14 && snakeFood.Y<36 && snakeFood.X==12 )|| (snakeFood.Y >=14 && snakeFood.Y<36 && snakeFood.X==72 ))
+          {
+            fFood3=1;
+          
+          }
+        }
+    
+    } 
+ 
+}
 /*****************  Arduino framework  ********************/
 
 /* the setup function runs once when you press reset or power the board
