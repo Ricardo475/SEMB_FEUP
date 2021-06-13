@@ -367,7 +367,8 @@ void handleColisions3() {
     points++;
     /*regen food */
     Sched_AddT(spawnSnakeFood3, 1, 0);
-    Sched_AddT(beepComida, 10, 0);
+    Sched_AddT(beepComidaOn, 2, 0);
+    Sched_AddT(beepComidaOff, 50, 0);
   }
 
   /* check if snake collides with itself */
@@ -395,7 +396,8 @@ void handleColisions2() {
      points++;
     /*regen food */
     Sched_AddT(spawnSnakeFood, 1, 0);
-    Sched_AddT(beepComida, 10, 0);
+   Sched_AddT(beepComidaOn, 2, 0);
+    Sched_AddT(beepComidaOff, 50, 0);
   }
 
   /* check if snake collides with itself */
@@ -421,7 +423,8 @@ void handleColisions() {
      points++;
     /* regen food */
     Sched_AddT(spawnSnakeFood, 1, 0);
-    Sched_AddT(beepComida, 10, 0);
+    Sched_AddT(beepComidaOn, 2, 0);
+    Sched_AddT(beepComidaOff, 50, 0);
   }
 
   /* check if snake collides with itself */
@@ -521,14 +524,13 @@ void get_key() {
   }
 
 }
-void beepComida()
+void beepComidaOn()
 {
- 
-   digitalWrite(BEEP,HIGH);
-   delay(100);
-   digitalWrite(BEEP,LOW);
-   Serial.print("BEEP : ");
-   
+   digitalWrite(BEEP,HIGH);   
+}
+void beepComidaOff()
+{
+   digitalWrite(BEEP,LOW);   
 }
 
 /*****************  Arduino framework  ********************/
@@ -749,8 +751,7 @@ void setup() {
   Sched_Init();
   
   /* add all periodic tasks  (code, offset, period) in ticks
-     for the moment, ticks in 10ms -- see below timer frequency
-     ticks a cada 2ms */
+     for the moment, ticks in 2ms -- see below timer frequency */
      
   if(level==1)
   {
