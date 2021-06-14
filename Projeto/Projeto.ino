@@ -28,14 +28,14 @@
 #define UP 9    /* Pin 9 connect to UP button */
 #define DOWN 8  /* Pin 8 connect to DOWN button */
 #define BEEP 10
-#define MAX_LENGTH 100  /* Max snake's length, need less than 89 because arduino don't have more memory */
+#define MAX_LENGTH 70  /* Max snake's length, need less than 89 because arduino don't have more memory */
 #define LEVEL_MAX 3
 
 Adafruit_PCD8544 display = Adafruit_PCD8544(5, 4, 3);
 
 /* diameter of the gameItemSize */
 uint8_t  gameItemSize = 2,level=1;
-volatile uint8_t  snakeSize = 98;
+volatile uint8_t  snakeSize = 4;
 volatile uint8_t snakeDir = 1;
 volatile uint8_t speed=1; /* Input from button */
 volatile uint8_t points=0;
@@ -58,7 +58,7 @@ gameItem snakeFood;
 
 /*************** kernel variables ******************/
 /* defines max number of tasks supported */
-#define MAXT 5
+#define MAXT 6
 
 /* kernel structure that defines the properties of each task
    --> the Task Control Block (TCB) */
@@ -147,7 +147,7 @@ void Sched_Dispatch(void) {
   uint8_t xsched_disp;
   prev_task = cur_task;  /* save currently running task, for the case it is preempted */
   for (xsched_disp = 0; xsched_disp < cur_task; xsched_disp++) {
-    /* x searches from 0 (highest priority) up to x (current task) */
+      /* x searches from 0 (highest priority) up to x (current task) */
     if ((Tasks[xsched_disp].func) && (Tasks[xsched_disp].exec)) {
       /* if a TCB has a task (func!=0) and there is a pending activation */
       Tasks[xsched_disp].exec--;  /* decrement (reset) "exec" flag/counter */
@@ -189,7 +189,6 @@ void drawGameOver() {
           if(points > EEPROM.read(0))
             EEPROM.write(0,points);
           display.print(EEPROM.read(0));
-          Serial.println("OLA "+EEPROM.read(0));
         }
         else if(speed==1)
         {
@@ -308,12 +307,11 @@ void updateValues() {
    
 }
 
-/* VER */
 void handleColisions3() {
   /* check if snake eats food */
   if (snake[0].X == snakeFood.X && snake[0].Y == snakeFood.Y) {
     /* increase snakeSize */
-    if(snakeSize<100)
+    if(snakeSize<MAX_LENGTH)
       snakeSize++;
     points++;
     /*regen food */
@@ -342,7 +340,7 @@ void handleColisions2() {
   /* check if snake eats food */
   if (snake[0].X == snakeFood.X && snake[0].Y == snakeFood.Y) {
     /* increase snakeSize */
-     if(snakeSize<100)
+     if(snakeSize<MAX_LENGTH)
       snakeSize++;
      points++;
     /*regen food */
@@ -369,7 +367,7 @@ void handleColisions() {
   /* check if snake eats food */
   if (snake[0].X == snakeFood.X && snake[0].Y == snakeFood.Y) {
     /*increase snakeSize */
-    if(snakeSize<100)
+    if(snakeSize<MAX_LENGTH)
       snakeSize++;
      points++;
     /* regen food */
@@ -418,16 +416,11 @@ void playGame2() {
 }
 void playGame3() {
   
-  unsigned long a=micros();
   handleColisions3();
   updateValues(); 
-  Serial.print("playGame3: ");
-  Serial.println(micros()-a);
-  
 }
 
 void draw3(){
-  unsigned long a=micros();
   display.clearDisplay();
   display.drawRect(0, 0, display.width(), display.height(), BLACK); /* area limite */
   display.drawRect(20, 12, 44, 2, BLACK); /* linha cima */
@@ -437,8 +430,6 @@ void draw3(){
    drawSnake();
    drawFood();
    display.display();
-   Serial.print("draw3: ");
-   Serial.println(micros()-a);
 }
 
 void draw2(){
@@ -458,47 +449,31 @@ void draw(){
  
 }
 void get_key() {
-  
-   
-// unsigned long a=micros();
+ 
   if (digitalRead(LEFT) == 0 && snakeDir != 1)
   {
-   // Serial.write("LEFT\n");
     snakeDir = 0; /* left */
   }
   else if (digitalRead(RIGHT) == 0 && snakeDir != 0)
   {
-   // Serial.write("RIGTH\n");
     snakeDir = 1; /* right */
   }
   else if (digitalRead(DOWN) == 0 && snakeDir != 3)
   {
-   // Serial.write("DOWN\n");
     snakeDir = 2; /* down */
   }
   else if (digitalRead(UP) == 0 && snakeDir != 2)
   {
-   // Serial.write("UP\n");
     snakeDir = 3; /* up */
   }
-
-  //Serial.print("GETKEY: ");
-  //Serial.println(micros()-a);
-
 }
 void beepComidaOn()
 {
-   unsigned long a=micros();
    digitalWrite(BEEP,HIGH);   
-   Serial.print("BEEPON: ");
-   Serial.println(micros()-a);
 }
 void beepComidaOff()
 {
-   unsigned long a=micros();
-   digitalWrite(BEEP,LOW);   
-   Serial.print("BEEPOFFF: ");
-   Serial.println(micros()-a);
+   digitalWrite(BEEP,LOW);  
 }
 void spawnSnakeFood() {
   /* generate snake Food position and avoid generate on position of snake */
@@ -526,7 +501,6 @@ void spawnSnakeFood() {
 }
 
 void spawnSnakeFood3() {
-   unsigned long a=micros();
   /* generate snake Food position and avoid generate on position of snake */
   uint8_t iFood3;
   uint8_t fFood3 = 1;
@@ -547,10 +521,7 @@ void spawnSnakeFood3() {
           
           }
         }
-    
     } 
-   Serial.print("SpawnSnakeFood: ");
-   Serial.println(micros()-a);
 }
 /*****************  Arduino framework  ********************/
 
@@ -808,7 +779,7 @@ void setup() {
     Sched_AddT(spawnSnakeFood, 1, 0);
      Sched_AddT(get_key, 1, 20);   /* highest priority */
       Sched_AddT( playGame2, 1, 100);
-      Sched_AddT(draw2, 1,100);
+      Sched_AddT(draw2, 1,120);
       
    }
     else if(speed==2)
@@ -816,7 +787,7 @@ void setup() {
       Sched_AddT(spawnSnakeFood, 1, 0);
      Sched_AddT(get_key, 1, 20);   /* highest priority */
       Sched_AddT( playGame2, 1, 50);
-      Sched_AddT(draw2, 1,50);
+      Sched_AddT(draw2, 1,70);
       
   }
     else if(speed==0)
@@ -824,7 +795,7 @@ void setup() {
       Sched_AddT(spawnSnakeFood, 1, 0);
       Sched_AddT(get_key, 1, 20);   /* highest priority */
       Sched_AddT( playGame2, 1, 150);
-      Sched_AddT(draw2, 1,150);
+      Sched_AddT(draw2, 1,170);
       
   }
      
@@ -836,7 +807,7 @@ void setup() {
      Sched_AddT(spawnSnakeFood3, 1, 0);
     Sched_AddT(get_key, 1, 20);   /* highest priority */
       Sched_AddT( playGame3, 1, 100);
-      Sched_AddT(draw3, 1,100);
+      Sched_AddT(draw3, 1,120);
      
    }
     else if(speed==2)
@@ -844,7 +815,7 @@ void setup() {
       Sched_AddT(spawnSnakeFood3, 1, 0);
      Sched_AddT(get_key, 1, 20);   /* highest priority */
       Sched_AddT( playGame3, 1, 50);
-      Sched_AddT(draw3, 1,50);
+      Sched_AddT(draw3, 1,70);
     
   }
     else if(speed==0)
@@ -852,7 +823,7 @@ void setup() {
       Sched_AddT(spawnSnakeFood3, 1, 0);
       Sched_AddT(get_key, 1, 20);   /* highest priority */
       Sched_AddT( playGame3, 1, 150);
-      Sched_AddT(draw3, 1,150);
+      Sched_AddT(draw3, 1,170);
    
   }
   }
