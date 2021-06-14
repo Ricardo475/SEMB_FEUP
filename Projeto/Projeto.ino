@@ -256,7 +256,7 @@ void drawFood() {
               
   }
 
-v
+
 void drawSnake() {
   uint8_t iSnakeDraw;
   
@@ -422,7 +422,7 @@ void playGame3() {
   updateValues(); 
 }
 void draw3(){
-
+   unsigned long a=micros();
   display.clearDisplay();
   display.drawRect(0, 0, display.width(), display.height(), BLACK); /* area limite */
   display.drawRect(20, 12, 44, 2, BLACK); /* linha cima */
@@ -432,6 +432,8 @@ void draw3(){
    drawSnake();
    drawFood();
    display.display();
+    Serial.println("draw3: ");
+   Serial.println(micros()-a);
 }
 void draw2(){
 
@@ -477,13 +479,19 @@ void get_key() {
 }
 void beepComidaOn()
 {
+   unsigned long a=micros();
    digitalWrite(BEEP,HIGH);   
+   Serial.println("BEEPON: ");
+   Serial.println(micros()-a);
 }
 void beepComidaOff()
 {
+   unsigned long a=micros();
    digitalWrite(BEEP,LOW);   
+   Serial.println("BEEPOFFF: ");
+   Serial.println(micros()-a);
 }
-oid spawnSnakeFood() {
+void spawnSnakeFood() {
   /* generate snake Food position and avoid generate on position of snake */
   uint8_t iFood;
   uint8_t fFood = 1;
@@ -509,6 +517,7 @@ oid spawnSnakeFood() {
 }
 
 void spawnSnakeFood3() {
+   unsigned long a=micros();
   /* generate snake Food position and avoid generate on position of snake */
   uint8_t iFood3;
   uint8_t fFood3 = 1;
@@ -531,7 +540,8 @@ void spawnSnakeFood3() {
         }
     
     } 
- 
+ Serial.println("SpawnSnakeFood: ");
+   Serial.println(micros()-a);
 }
 /*****************  Arduino framework  ********************/
 
