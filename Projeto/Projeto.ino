@@ -35,7 +35,7 @@ Adafruit_PCD8544 display = Adafruit_PCD8544(5, 4, 3);
 
 /* diameter of the gameItemSize */
 uint8_t  gameItemSize = 2,level=1;
-volatile uint8_t  snakeSize = 4;
+volatile uint8_t  snakeSize = 98;
 volatile uint8_t snakeDir = 1;
 volatile uint8_t speed=1; /* Input from button */
 volatile uint8_t points=0;
@@ -417,12 +417,17 @@ void playGame2() {
   updateValues(); 
 }
 void playGame3() {
- 
+  
+  unsigned long a=micros();
   handleColisions3();
   updateValues(); 
+  Serial.print("playGame3: ");
+  Serial.println(micros()-a);
+  
 }
+
 void draw3(){
-   unsigned long a=micros();
+  unsigned long a=micros();
   display.clearDisplay();
   display.drawRect(0, 0, display.width(), display.height(), BLACK); /* area limite */
   display.drawRect(20, 12, 44, 2, BLACK); /* linha cima */
@@ -432,9 +437,10 @@ void draw3(){
    drawSnake();
    drawFood();
    display.display();
-    Serial.println("draw3: ");
+   Serial.print("draw3: ");
    Serial.println(micros()-a);
 }
+
 void draw2(){
 
   display.clearDisplay();
@@ -454,41 +460,44 @@ void draw(){
 void get_key() {
   
    
-
+// unsigned long a=micros();
   if (digitalRead(LEFT) == 0 && snakeDir != 1)
   {
-    Serial.write("LEFT\n");
+   // Serial.write("LEFT\n");
     snakeDir = 0; /* left */
   }
   else if (digitalRead(RIGHT) == 0 && snakeDir != 0)
   {
-    Serial.write("RIGTH\n");
+   // Serial.write("RIGTH\n");
     snakeDir = 1; /* right */
   }
   else if (digitalRead(DOWN) == 0 && snakeDir != 3)
   {
-    Serial.write("DOWN\n");
+   // Serial.write("DOWN\n");
     snakeDir = 2; /* down */
   }
   else if (digitalRead(UP) == 0 && snakeDir != 2)
   {
-    Serial.write("UP\n");
+   // Serial.write("UP\n");
     snakeDir = 3; /* up */
   }
+
+  //Serial.print("GETKEY: ");
+  //Serial.println(micros()-a);
 
 }
 void beepComidaOn()
 {
    unsigned long a=micros();
    digitalWrite(BEEP,HIGH);   
-   Serial.println("BEEPON: ");
+   Serial.print("BEEPON: ");
    Serial.println(micros()-a);
 }
 void beepComidaOff()
 {
    unsigned long a=micros();
    digitalWrite(BEEP,LOW);   
-   Serial.println("BEEPOFFF: ");
+   Serial.print("BEEPOFFF: ");
    Serial.println(micros()-a);
 }
 void spawnSnakeFood() {
@@ -540,7 +549,7 @@ void spawnSnakeFood3() {
         }
     
     } 
- Serial.println("SpawnSnakeFood: ");
+   Serial.print("SpawnSnakeFood: ");
    Serial.println(micros()-a);
 }
 /*****************  Arduino framework  ********************/
